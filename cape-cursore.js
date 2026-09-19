@@ -324,6 +324,12 @@
     tFondo = setTimeout(rileggi, 650);
   }, { passive:true });
 
+  window.capePatti && capePatti.dichiara('cursore', {
+    leggo: [['window.inkSection', '', 'la mappa dell\'inchiostro: dice se il puntatore e\' su una zona gia\' dipinta'],
+            ['data-cursor', '[data-cursor]', 'l\'etichetta da mostrare dentro l\'anello'],
+            ['data-cursor-fondo', '[data-cursor-fondo]', 'chiaro/scuro forzato a mano invece della misura del colore']]
+  });
+
   rileggi();
 
   sveglia();
