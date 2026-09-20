@@ -22,6 +22,15 @@
                                puntatore e' sopra una zona gia' dipinta
      [data-cursor]             l'etichetta da mostrare su un elemento
      [data-cursor-fondo]       chiaro/scuro forzato a mano
+     .cape-link e c.           i bottoni-parola: li' l'anello diventa un punto.
+                               La lista sta in PAR_SEL, qui sotto.
+
+   CHE COSA SCRIVE, FUORI
+   ----------------------
+     #capecur.su-parola        acceso mentre il puntatore e' su un
+                               bottone-parola. La regola che riempie
+                               l'anello sta nel <style> in pagina, con
+                               tutte le altre di #capecur.
    ========================================================================= */
 (function(){
   if(!matchMedia('(min-width:992px) and (hover:hover)').matches) return;
@@ -32,6 +41,7 @@
   var SIZE      = 30;
   var RING_BTN  = 46;
   var RING_IMG  = 92;
+  var RING_PAR  = 7;                  /* sopra una parola-bottone: un punto, non un anello */
   var TILT      = 16;
   var TRAIL     = 0.20;
   var MAGNET    = 0.30;
@@ -39,6 +49,7 @@
   var LABEL_DEF = 'View';
   var MAG_SEL   = 'a,button,.w-button,.button,[data-magnetic]';
   var NO_MAG    = '.no-magnetic,[data-no-magnetic]';
+  var PAR_SEL   = '.cape-link,.view-btn-1,.header-left-btn,.link-block-8.right';
 
   var d = document,
       cc    = d.getElementById('capecur'),
@@ -64,7 +75,7 @@
 
   var tx = innerWidth / 2, ty = innerHeight / 2, cx = tx, cy = ty, pcx = cx;
   var rot = 0, scl = 1, tscl = 1, h = 0, th = 0, rmax = RING_BTN;
-  var shown = false, media = false, lastH = -1;
+  var shown = false, media = false, parola = false, lastH = -1;
 
   var magEl = null, magRect = null, magTimer = null;
 
@@ -250,16 +261,28 @@
       if(m  && !visibile(m))  m  = null;
       if(it && !visibile(it)) it = null;
     }
+    /* Una parola sottolineata non ha una scatola da cerchiare: l'anello da
+       46px le sta intorno come una cornice a un francobollo. Li' il cursore
+       si chiude in un punto e lascia parlare il filo che si sta scrivendo. */
+    var p = !m && !!(it && it.closest(PAR_SEL));
+
     if(m){
       media = true; th = 1; rmax = RING_IMG;
       label.textContent = m.getAttribute('data-cursor') || LABEL_DEF;
     } else if(it){
       media = false; th = 1;
-      var b = t.closest('.ring-reduction') && it.getBoundingClientRect();
-      rmax = b ? Math.max(18, Math.min(RING_BTN, Math.min(b.width, b.height) - 8)) : RING_BTN;
+      if(p){
+        rmax = RING_PAR;
+      } else {
+        var b = t.closest('.ring-reduction') && it.getBoundingClientRect();
+        rmax = b ? Math.max(18, Math.min(RING_BTN, Math.min(b.width, b.height) - 8)) : RING_BTN;
+      }
     } else {
       media = false; th = 0;
     }
+
+    /* la classe la scrive solo quando cambia: non e' roba da fotogramma */
+    if(p !== parola){ parola = p; cc.classList.toggle('su-parola', p); }
   }
 
   /* ——— il colore ————————————————————————————————————————————————— */
@@ -325,9 +348,11 @@
   }, { passive:true });
 
   window.capePatti && capePatti.dichiara('cursore', {
+    scrivo: [['su-parola', '#capecur', 'il puntatore e\' su un bottone-parola: l\'anello si chiude in un punto pieno']],
     leggo: [['window.inkSection', '', 'la mappa dell\'inchiostro: dice se il puntatore e\' su una zona gia\' dipinta'],
             ['data-cursor', '[data-cursor]', 'l\'etichetta da mostrare dentro l\'anello'],
-            ['data-cursor-fondo', '[data-cursor-fondo]', 'chiaro/scuro forzato a mano invece della misura del colore']]
+            ['data-cursor-fondo', '[data-cursor-fondo]', 'chiaro/scuro forzato a mano invece della misura del colore'],
+            ['.cape-link', PAR_SEL, 'i bottoni-parola: sopra di loro l\'anello diventa un punto']]
   });
 
   rileggi();
