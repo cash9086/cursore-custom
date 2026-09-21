@@ -1,5 +1,5 @@
 /* =========================================================================
-   cape-cursore.js — il cursore che morfa in anello, con magnetismo
+   cape-cursore.js — il cursore che morfa in punto, con magnetismo
    -------------------------------------------------------------------------
    Estratto dal footer della Home il 2026-09-19: da solo pesava tredicimila
    caratteri su un campo che ne ammette cinquantamila, quasi tutti per le due
@@ -22,15 +22,17 @@
                                puntatore e' sopra una zona gia' dipinta
      [data-cursor]             l'etichetta da mostrare su un elemento
      [data-cursor-fondo]       chiaro/scuro forzato a mano
-     .cape-link e c.           i bottoni-parola: li' l'anello diventa un punto.
-                               La lista sta in PAR_SEL, qui sotto.
+     .cursor-view              le immagini che si prendono la scritta VIEW:
+                               li' il cursore non prende nessuno stato, resta
+                               il logo. Il selettore sta in VIEW_SEL, qui
+                               sotto.
 
    CHE COSA SCRIVE, FUORI
    ----------------------
-     #capecur.su-parola        acceso mentre il puntatore e' su un
-                               bottone-parola. La regola che riempie
-                               l'anello sta nel <style> in pagina, con
-                               tutte le altre di #capecur.
+     #capecur.su-punto         acceso mentre il puntatore e' su un pulsante o
+                               un link. La regola che riempie l'anello sta nel
+                               <style> in pagina, con tutte le altre di
+                               #capecur.
    ========================================================================= */
 (function(){
   if(!matchMedia('(min-width:992px) and (hover:hover)').matches) return;
@@ -39,9 +41,8 @@
   var CIRC=[[778,264],[790,265],[802,266],[814,268],[826,270],[838,274],[849,278],[860,283],[871,288],[882,295],[892,301],[901,309],[911,317],[919,325],[927,335],[935,344],[941,354],[948,365],[953,376],[958,387],[962,398],[966,410],[968,422],[970,434],[971,446],[972,458],[971,470],[970,482],[968,494],[966,506],[962,518],[958,529],[953,540],[948,551],[941,562],[935,572],[927,581],[919,591],[911,599],[901,607],[892,615],[882,621],[871,628],[860,633],[849,638],[838,642],[826,646],[814,648],[802,650],[790,651],[778,652],[766,651],[754,650],[742,648],[730,646],[718,642],[707,638],[696,633],[685,628],[674,621],[664,615],[655,607],[645,599],[637,591],[629,581],[621,572],[615,562],[608,551],[603,540],[598,529],[594,518],[590,506],[588,494],[586,482],[585,470],[584,458],[585,446],[586,434],[588,422],[590,410],[594,398],[598,387],[603,376],[608,365],[615,354],[621,344],[629,335],[637,325],[645,317],[655,309],[664,301],[674,295],[685,288],[696,283],[707,278],[718,274],[730,270],[742,268],[754,266],[766,265]];
 
   var SIZE      = 30;
-  var RING_BTN  = 46;
   var RING_IMG  = 92;
-  var RING_PAR  = 7;                  /* sopra una parola-bottone: un punto, non un anello */
+  var RING_DOT  = 7;                  /* sopra un pulsante: un punto, non un anello */
   var TILT      = 16;
   var TRAIL     = 0.20;
   var MAGNET    = 0.30;
@@ -49,7 +50,7 @@
   var LABEL_DEF = 'View';
   var MAG_SEL   = 'a,button,.w-button,.button,[data-magnetic]';
   var NO_MAG    = '.no-magnetic,[data-no-magnetic]';
-  var PAR_SEL   = '.cape-link,.view-btn-1,.header-left-btn,.link-block-8.right';
+  var VIEW_SEL  = '.cursor-view';
 
   var d = document,
       cc    = d.getElementById('capecur'),
@@ -74,8 +75,8 @@
   path.setAttribute('d', poly(0));
 
   var tx = innerWidth / 2, ty = innerHeight / 2, cx = tx, cy = ty, pcx = cx;
-  var rot = 0, scl = 1, tscl = 1, h = 0, th = 0, rmax = RING_BTN;
-  var shown = false, media = false, parola = false, lastH = -1;
+  var rot = 0, scl = 1, tscl = 1, h = 0, th = 0, rmax = RING_DOT;
+  var shown = false, media = false, punto = false, lastH = -1;
 
   var magEl = null, magRect = null, magTimer = null;
 
@@ -255,34 +256,32 @@
   function valuta(t){
     if(!t || !t.closest) t = d.elementFromPoint(tx, ty);
     var m = null, it = null;
-    if(t && t.closest && !inkInCorso(tx, ty)){
+    /* Sopra un'immagine che si prende la scritta VIEW il cursore non prende
+       nessuno stato: resta il logo e la lascia parlare da sola. Due cose che
+       si trasformano nello stesso momento, a un palmo l'una dall'altra, sono
+       una in piu'. */
+    if(t && t.closest && !inkInCorso(tx, ty) && !t.closest(VIEW_SEL)){
       m  = t.closest('[data-cursor]');
       it = t.closest('a,button,[role=button],.w-button,.button');
       if(m  && !visibile(m))  m  = null;
       if(it && !visibile(it)) it = null;
     }
-    /* Una parola sottolineata non ha una scatola da cerchiare: l'anello da
-       46px le sta intorno come una cornice a un francobollo. Li' il cursore
-       si chiude in un punto e lascia parlare il filo che si sta scrivendo. */
-    var p = !m && !!(it && it.closest(PAR_SEL));
+    /* Su un pulsante il cursore si chiude in un punto: l'anello da 46px e'
+       una cornice intorno a un francobollo, e sopra le parole sottolineate
+       della Home lo era in modo imbarazzante. */
+    var p = !m && !!it;
 
     if(m){
       media = true; th = 1; rmax = RING_IMG;
       label.textContent = m.getAttribute('data-cursor') || LABEL_DEF;
     } else if(it){
-      media = false; th = 1;
-      if(p){
-        rmax = RING_PAR;
-      } else {
-        var b = t.closest('.ring-reduction') && it.getBoundingClientRect();
-        rmax = b ? Math.max(18, Math.min(RING_BTN, Math.min(b.width, b.height) - 8)) : RING_BTN;
-      }
+      media = false; th = 1; rmax = RING_DOT;
     } else {
       media = false; th = 0;
     }
 
     /* la classe la scrive solo quando cambia: non e' roba da fotogramma */
-    if(p !== parola){ parola = p; cc.classList.toggle('su-parola', p); }
+    if(p !== punto){ punto = p; cc.classList.toggle('su-punto', p); }
   }
 
   /* ——— il colore ————————————————————————————————————————————————— */
@@ -348,11 +347,11 @@
   }, { passive:true });
 
   window.capePatti && capePatti.dichiara('cursore', {
-    scrivo: [['su-parola', '#capecur', 'il puntatore e\' su un bottone-parola: l\'anello si chiude in un punto pieno']],
+    scrivo: [['su-punto', '#capecur', 'il puntatore e\' su un pulsante: l\'anello si chiude in un punto pieno']],
     leggo: [['window.inkSection', '', 'la mappa dell\'inchiostro: dice se il puntatore e\' su una zona gia\' dipinta'],
             ['data-cursor', '[data-cursor]', 'l\'etichetta da mostrare dentro l\'anello'],
             ['data-cursor-fondo', '[data-cursor-fondo]', 'chiaro/scuro forzato a mano invece della misura del colore'],
-            ['.cape-link', PAR_SEL, 'i bottoni-parola: sopra di loro l\'anello diventa un punto']]
+            ['.cursor-view', VIEW_SEL, 'le immagini con la scritta VIEW: li\' il cursore resta il logo']]
   });
 
   rileggi();
