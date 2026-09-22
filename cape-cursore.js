@@ -51,6 +51,13 @@
   var MAG_SEL   = 'a,button,.w-button,.button,[data-magnetic]';
   var NO_MAG    = '.no-magnetic,[data-no-magnetic]';
   var VIEW_SEL  = '.cursor-view';
+  /* Cose che non sono pulsanti ma il punto lo vogliono lo stesso. Il
+     binario dello scroll a destra e' un div: non cadeva in nessuna rete e
+     sopra di lui restava il logo. La sua zona sensibile riceve il
+     puntatore solo quando gli sei vicino, quindi nominarlo basta e non
+     serve nemmeno misurarlo — la scatola di .cape-rail e' 0x0, e la
+     prova di visibilita' la scarterebbe. */
+  var PUNTO_SEL = '.cape-rail';
 
   var d = document,
       cc    = d.getElementById('capecur'),
@@ -255,7 +262,7 @@
      fermo. */
   function valuta(t){
     if(!t || !t.closest) t = d.elementFromPoint(tx, ty);
-    var m = null, it = null;
+    var m = null, it = null, bin = null;
     /* Sopra un'immagine che si prende la scritta VIEW il cursore non prende
        nessuno stato: resta il logo e la lascia parlare da sola. Due cose che
        si trasformano nello stesso momento, a un palmo l'una dall'altra, sono
@@ -263,18 +270,19 @@
     if(t && t.closest && !inkInCorso(tx, ty) && !t.closest(VIEW_SEL)){
       m  = t.closest('[data-cursor]');
       it = t.closest('a,button,[role=button],.w-button,.button');
+      bin = t.closest(PUNTO_SEL);
       if(m  && !visibile(m))  m  = null;
       if(it && !visibile(it)) it = null;
     }
     /* Su un pulsante il cursore si chiude in un punto: l'anello da 46px e'
        una cornice intorno a un francobollo, e sopra le parole sottolineate
        della Home lo era in modo imbarazzante. */
-    var p = !m && !!it;
+    var p = !m && (!!it || !!bin);
 
     if(m){
       media = true; th = 1; rmax = RING_IMG;
       label.textContent = m.getAttribute('data-cursor') || LABEL_DEF;
-    } else if(it){
+    } else if(it || bin){
       media = false; th = 1; rmax = RING_DOT;
     } else {
       media = false; th = 0;
